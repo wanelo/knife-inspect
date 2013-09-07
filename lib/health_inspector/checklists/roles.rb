@@ -17,6 +17,10 @@ module HealthInspector
         end
       end
 
+      def all_item_names
+        super.sort { |a, b| a.include?('/') ? -1 : 1 }.uniq{|item| item.split('/').last }.sort
+      end
+
       def load_item(name)
         Role.new(@context,
           :name   => name,
@@ -31,19 +35,20 @@ module HealthInspector
 
       def local_items
         Dir.chdir("#{@context.repo_path}/roles") do
-          Dir["*.{rb,json,js}"].map { |e| e.gsub(/\.(rb|json|js)/, '') }
+          Dir["**/*.{rb,json,js}"].map { |e| e.gsub(/\.(rb|json|js)/, '') }
         end
       end
 
       def load_item_from_server(name)
-        role = Chef::Role.load(name)
+        role = Chef::Role.load(name.split('/').last)
         role.to_hash
       rescue
         nil
       end
 
       def load_item_from_local(name)
-        load_ruby_or_json_from_local(Chef::Role, "roles", name)
+        filename = local_items.grep(/(^|\/)#{name}$/).first
+        load_ruby_or_json_from_local(Chef::Role, "roles", filename)
       end
     end
 
